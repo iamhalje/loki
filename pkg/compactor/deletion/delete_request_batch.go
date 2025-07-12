@@ -37,6 +37,15 @@ func (b *deleteRequestBatch) requestCount() int {
 	return b.count
 }
 
+func (b *deleteRequestBatch) userIDs() []string {
+	userIDs := make([]string, 0, len(b.deleteRequestsToProcess))
+	for userID := range b.deleteRequestsToProcess {
+		userIDs = append(userIDs, userID)
+	}
+
+	return userIDs
+}
+
 // addDeleteRequest add a requests to the batch
 func (b *deleteRequestBatch) addDeleteRequest(dr *DeleteRequest) {
 	dr.Metrics = b.metrics
@@ -111,7 +120,7 @@ func (b *deleteRequestBatch) expired(userID []byte, chk retention.Chunk, lbls la
 				"delete_request_id", deleteRequest.RequestID,
 				"sequence_num", deleteRequest.SequenceNum,
 				"user", deleteRequest.UserID,
-				"chunkID", string(chk.ChunkID),
+				"chunkID", chk.ChunkID,
 			)
 			b.metrics.deleteRequestsChunksSelectedTotal.WithLabelValues(string(userID)).Inc()
 			return true, nil

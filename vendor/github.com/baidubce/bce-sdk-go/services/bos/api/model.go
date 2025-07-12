@@ -17,6 +17,7 @@
 package api
 
 import (
+	"context"
 	"io"
 )
 
@@ -31,6 +32,7 @@ type BucketSummaryType struct {
 	CreationDate    string `json:"creationDate"`
 	LccLocation     string `json:"lccLocation,omitempty"`
 	EnableDedicated bool   `json:"enableDedicated,omitempty"`
+	EnableMultiAz   bool   `json:"enableMultiAz,omitempty"`
 }
 
 // ListBucketsResult defines the result structure of ListBuckets api.
@@ -280,6 +282,7 @@ type PutObjectArgs struct {
 	TrafficLimit       int64
 	ContentCrc32c      string
 	ContentCrc32cFlag  bool
+	ObjectExpires      int
 }
 
 // CopyObjectArgs defines the optional args structure for the copy object api.
@@ -296,6 +299,7 @@ type CopyObjectArgs struct {
 	ObjectTagging     string
 	ContentCrc32c     string
 	ContentCrc32cFlag bool
+	ObjectExpires     int
 }
 
 type MultiCopyObjectArgs struct {
@@ -342,6 +346,7 @@ type ObjectMeta struct {
 	BceObjectType      string
 	VersionId          string
 	ContentCrc32c      string
+	ExpirationDate     string
 }
 
 // GetObjectResult defines the result data of the get object api.
@@ -684,8 +689,8 @@ type BucketTag struct {
 }
 
 type BosContext struct {
-	Bucket          string
 	PathStyleEnable bool
+	Ctx             context.Context
 }
 
 type PutObjectTagArgs struct {

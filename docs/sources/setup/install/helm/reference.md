@@ -1893,6 +1893,15 @@ null
 </td>
 		</tr>
 		<tr>
+			<td>chunksCache.addresses</td>
+			<td>string</td>
+			<td>Comma separated addresses list in DNS Service Discovery format</td>
+			<td><pre lang="json">
+"dnssrvnoa+_memcached-client._tcp.{{ template \"loki.fullname\" $ }}-chunks-cache.{{ $.Release.Namespace }}.svc"
+</pre>
+</td>
+		</tr>
+		<tr>
 			<td>chunksCache.affinity</td>
 			<td>object</td>
 			<td>Affinity for chunks-cache pods</td>
@@ -2727,7 +2736,8 @@ null
   "serviceLabels": {},
   "terminationGracePeriodSeconds": 30,
   "tolerations": [],
-  "topologySpreadConstraints": []
+  "topologySpreadConstraints": [],
+  "trafficDistribution": ""
 }
 </pre>
 </td>
@@ -3059,6 +3069,15 @@ null
 </td>
 		</tr>
 		<tr>
+			<td>distributor.trafficDistribution</td>
+			<td>string</td>
+			<td>trafficDistribution for distributor service</td>
+			<td><pre lang="json">
+""
+</pre>
+</td>
+		</tr>
+		<tr>
 			<td>enterprise</td>
 			<td>object</td>
 			<td>Configuration for running Enterprise Loki</td>
@@ -3083,7 +3102,7 @@ null
     "pullPolicy": "IfNotPresent",
     "registry": "docker.io",
     "repository": "grafana/enterprise-logs",
-    "tag": "3.5.1"
+    "tag": "3.5.2"
   },
   "license": {
     "contents": "NOTAVALIDLICENSE"
@@ -3092,16 +3111,18 @@ null
     "additionalTenants": [],
     "affinity": {},
     "annotations": {},
+    "apiUrl": "{{ include \"loki.address\" . }}",
     "enabled": true,
     "env": [],
     "extraVolumeMounts": [],
+    "extraVolumes": [],
     "hookType": "post-install",
     "image": {
       "digest": null,
       "pullPolicy": "IfNotPresent",
-      "registry": "docker.io",
-      "repository": "grafana/enterprise-logs-provisioner",
-      "tag": null
+      "registry": "us-docker.pkg.dev",
+      "repository": "grafanalabs-global/docker-enterprise-provisioner-prod/enterprise-provisioner",
+      "tag": "latest"
     },
     "labels": {},
     "nodeSelector": {},
@@ -3116,6 +3137,7 @@ null
     "tolerations": []
   },
   "tokengen": {
+    "adminTokenSecret": null,
     "affinity": {},
     "annotations": {},
     "enabled": true,
@@ -3257,7 +3279,7 @@ null
 			<td>string</td>
 			<td>Docker image tag</td>
 			<td><pre lang="json">
-"3.5.1"
+"3.5.2"
 </pre>
 </td>
 		</tr>
@@ -3275,22 +3297,24 @@ null
 		<tr>
 			<td>enterprise.provisioner</td>
 			<td>object</td>
-			<td>Configuration for `provisioner` target</td>
+			<td>Configuration for `provisioner` target Note: Uses tokengenJob.adminTokenSecret value to mount the admin token used to call the admin api.</td>
 			<td><pre lang="json">
 {
   "additionalTenants": [],
   "affinity": {},
   "annotations": {},
+  "apiUrl": "{{ include \"loki.address\" . }}",
   "enabled": true,
   "env": [],
   "extraVolumeMounts": [],
+  "extraVolumes": [],
   "hookType": "post-install",
   "image": {
     "digest": null,
     "pullPolicy": "IfNotPresent",
-    "registry": "docker.io",
-    "repository": "grafana/enterprise-logs-provisioner",
-    "tag": null
+    "registry": "us-docker.pkg.dev",
+    "repository": "grafanalabs-global/docker-enterprise-provisioner-prod/enterprise-provisioner",
+    "tag": "latest"
   },
   "labels": {},
   "nodeSelector": {},
@@ -3335,6 +3359,15 @@ null
 </td>
 		</tr>
 		<tr>
+			<td>enterprise.provisioner.apiUrl</td>
+			<td>string</td>
+			<td>url of the admin api to use for the provisioner</td>
+			<td><pre lang="json">
+"{{ include \"loki.address\" . }}"
+</pre>
+</td>
+		</tr>
+		<tr>
 			<td>enterprise.provisioner.enabled</td>
 			<td>bool</td>
 			<td>Whether the job should be part of the deployment</td>
@@ -3362,6 +3395,15 @@ true
 </td>
 		</tr>
 		<tr>
+			<td>enterprise.provisioner.extraVolumes</td>
+			<td>list</td>
+			<td>Additional volumes for Pods</td>
+			<td><pre lang="json">
+[]
+</pre>
+</td>
+		</tr>
+		<tr>
 			<td>enterprise.provisioner.hookType</td>
 			<td>string</td>
 			<td>Hook type(s) to customize when the job runs.  defaults to post-install</td>
@@ -3378,9 +3420,9 @@ true
 {
   "digest": null,
   "pullPolicy": "IfNotPresent",
-  "registry": "docker.io",
-  "repository": "grafana/enterprise-logs-provisioner",
-  "tag": null
+  "registry": "us-docker.pkg.dev",
+  "repository": "grafanalabs-global/docker-enterprise-provisioner-prod/enterprise-provisioner",
+  "tag": "latest"
 }
 </pre>
 </td>
@@ -3408,7 +3450,7 @@ null
 			<td>string</td>
 			<td>The Docker registry</td>
 			<td><pre lang="json">
-"docker.io"
+"us-docker.pkg.dev"
 </pre>
 </td>
 		</tr>
@@ -3417,7 +3459,7 @@ null
 			<td>string</td>
 			<td>Docker image repository</td>
 			<td><pre lang="json">
-"grafana/enterprise-logs-provisioner"
+"grafanalabs-global/docker-enterprise-provisioner-prod/enterprise-provisioner"
 </pre>
 </td>
 		</tr>
@@ -3426,7 +3468,7 @@ null
 			<td>string</td>
 			<td>Overrides the image tag whose default is the chart's appVersion</td>
 			<td><pre lang="json">
-null
+"latest"
 </pre>
 </td>
 		</tr>
@@ -3495,6 +3537,7 @@ null
 			<td>Configuration for `tokengen` target</td>
 			<td><pre lang="json">
 {
+  "adminTokenSecret": null,
   "affinity": {},
   "annotations": {},
   "enabled": true,
@@ -3515,6 +3558,15 @@ null
   "targetModule": "tokengen",
   "tolerations": []
 }
+</pre>
+</td>
+		</tr>
+		<tr>
+			<td>enterprise.tokengen.adminTokenSecret</td>
+			<td>string</td>
+			<td>Name of the secret to store the admin token.</td>
+			<td><pre lang="json">
+null
 </pre>
 </td>
 		</tr>
@@ -4214,7 +4266,7 @@ null
 			<td>string</td>
 			<td>The gateway image tag</td>
 			<td><pre lang="json">
-"1.28-alpine"
+"1.29-alpine"
 </pre>
 </td>
 		</tr>
@@ -5814,6 +5866,9 @@ null
   "ingressClassName": "",
   "labels": {},
   "paths": {
+    "compactor": [
+      "/loki/api/v1/delete"
+    ],
     "distributor": [
       "/api/prom/push",
       "/loki/api/v1/push",
@@ -5860,6 +5915,17 @@ null
 			<td><pre lang="json">
 [
   "loki.example.com"
+]
+</pre>
+</td>
+		</tr>
+		<tr>
+			<td>ingress.paths.compactor</td>
+			<td>list</td>
+			<td>Paths that are exposed by Loki Compactor. If deployment mode is Distributed, the requests are forwarded to the service: `{{"loki.compactorFullname"}}`. If deployment mode is SimpleScalable, the requests are forwarded to k8s service: `{{"loki.backendFullname"}}`. If deployment mode is SingleBinary, the requests are forwarded to the central/single k8s service: `{{"loki.singleBinaryFullname"}}`</td>
+			<td><pre lang="json">
+[
+  "/loki/api/v1/delete"
 ]
 </pre>
 </td>
@@ -6027,6 +6093,15 @@ See values.yaml
 </td>
 		</tr>
 		<tr>
+			<td>loki.block_builder</td>
+			<td>object</td>
+			<td>Optional block builder configuration</td>
+			<td><pre lang="json">
+{}
+</pre>
+</td>
+		</tr>
+		<tr>
 			<td>loki.commonConfig</td>
 			<td>object</td>
 			<td>Check https://grafana.com/docs/loki/latest/configuration/#common_config for more info on how to provide a common configuration</td>
@@ -6169,7 +6244,7 @@ null
 			<td>string</td>
 			<td>Overrides the image tag whose default is the chart's appVersion</td>
 			<td><pre lang="json">
-"3.5.0"
+"3.5.2"
 </pre>
 </td>
 		</tr>
@@ -6215,30 +6290,6 @@ null
 			<td>memberlist configuration (overrides embedded default)</td>
 			<td><pre lang="json">
 {}
-</pre>
-</td>
-		</tr>
-		<tr>
-			<td>loki.memcached</td>
-			<td>object</td>
-			<td>Configure memcached as an external cache for chunk and results cache. Disabled by default must enable and specify a host for each cache you would like to use.</td>
-			<td><pre lang="json">
-{
-  "chunk_cache": {
-    "batch_size": 256,
-    "enabled": false,
-    "host": "",
-    "parallelism": 10,
-    "service": "memcached-client"
-  },
-  "results_cache": {
-    "default_validity": "12h",
-    "enabled": false,
-    "host": "",
-    "service": "memcached-client",
-    "timeout": "500ms"
-  }
-}
 </pre>
 </td>
 		</tr>
@@ -6562,6 +6613,15 @@ false
 </td>
 		</tr>
 		<tr>
+			<td>lokiCanary.affinity</td>
+			<td>object</td>
+			<td>Affinity for canary pods</td>
+			<td><pre lang="json">
+{}
+</pre>
+</td>
+		</tr>
+		<tr>
 			<td>lokiCanary.annotations</td>
 			<td>object</td>
 			<td>Additional annotations for the `loki-canary` Daemonset</td>
@@ -6694,11 +6754,29 @@ null
 </td>
 		</tr>
 		<tr>
+			<td>lokiCanary.kind</td>
+			<td>string</td>
+			<td>The type of the loki canary k8s rollout. This can be a DaemonSet or Deployment.</td>
+			<td><pre lang="json">
+"DaemonSet"
+</pre>
+</td>
+		</tr>
+		<tr>
 			<td>lokiCanary.labelname</td>
 			<td>string</td>
 			<td>The name of the label to look for at loki when doing the checks.</td>
 			<td><pre lang="json">
 "pod"
+</pre>
+</td>
+		</tr>
+		<tr>
+			<td>lokiCanary.lokiurl</td>
+			<td>string</td>
+			<td>If set overwrites the default value set by loki.host helper function. Use this if gateway not enabled.</td>
+			<td><pre lang="json">
+null
 </pre>
 </td>
 		</tr>
@@ -6824,6 +6902,15 @@ false
 </td>
 		</tr>
 		<tr>
+			<td>memcached.enabled</td>
+			<td>bool</td>
+			<td>Enable the built in memcached server provided by the chart</td>
+			<td><pre lang="json">
+true
+</pre>
+</td>
+		</tr>
+		<tr>
 			<td>memcached.image.pullPolicy</td>
 			<td>string</td>
 			<td>Memcached Docker image pull policy</td>
@@ -6870,6 +6957,23 @@ false
 			<td>The name of the PriorityClass for memcached pods</td>
 			<td><pre lang="json">
 null
+</pre>
+</td>
+		</tr>
+		<tr>
+			<td>memcached.readinessProbe</td>
+			<td>object</td>
+			<td>Readiness probe for memcached pods (probe port defaults to container port)</td>
+			<td><pre lang="json">
+{
+  "failureThreshold": 6,
+  "initialDelaySeconds": 5,
+  "periodSeconds": 5,
+  "tcpSocket": {
+    "port": "client"
+  },
+  "timeoutSeconds": 3
+}
 </pre>
 </td>
 		</tr>
@@ -6931,7 +7035,7 @@ true
 			<td>string</td>
 			<td></td>
 			<td><pre lang="json">
-"v0.15.2"
+"v0.15.3"
 </pre>
 </td>
 		</tr>
@@ -8118,6 +8222,7 @@ null
   },
   "initContainers": [],
   "livenessProbe": {},
+  "maxUnavailable": null,
   "nodeSelector": {},
   "persistence": {
     "annotations": {},
@@ -8291,6 +8396,15 @@ null
 			<td>liveness probe settings for ingester pods. If empty use `loki.livenessProbe`</td>
 			<td><pre lang="json">
 {}
+</pre>
+</td>
+		</tr>
+		<tr>
+			<td>patternIngester.maxUnavailable</td>
+			<td>string</td>
+			<td>Pod Disruption Budget maxUnavailable</td>
+			<td><pre lang="json">
+null
 </pre>
 </td>
 		</tr>
@@ -9687,6 +9801,7 @@ false
   },
   "legacyReadTarget": false,
   "lifecycle": {},
+  "livenessProbe": {},
   "nodeSelector": {},
   "persistence": {
     "annotations": {},
@@ -9895,6 +10010,15 @@ false
 </td>
 		</tr>
 		<tr>
+			<td>read.livenessProbe</td>
+			<td>object</td>
+			<td>liveness probe settings for read pods. If empty, applies no livenessProbe</td>
+			<td><pre lang="json">
+{}
+</pre>
+</td>
+		</tr>
+		<tr>
 			<td>read.nodeSelector</td>
 			<td>object</td>
 			<td>Node selector for read pods</td>
@@ -10077,6 +10201,15 @@ null
 			<td>Topology Spread Constraints for read pods</td>
 			<td><pre lang="json">
 []
+</pre>
+</td>
+		</tr>
+		<tr>
+			<td>resultsCache.addresses</td>
+			<td>string</td>
+			<td>Comma separated addresses list in DNS Service Discovery format</td>
+			<td><pre lang="json">
+"dnssrvnoa+_memcached-client._tcp.{{ template \"loki.fullname\" $ }}-results-cache.{{ $.Release.Namespace }}.svc"
 </pre>
 </td>
 		</tr>
@@ -10928,7 +11061,7 @@ false
 			<td>string</td>
 			<td>Docker image tag</td>
 			<td><pre lang="json">
-"1.30.3"
+"1.30.7"
 </pre>
 </td>
 		</tr>

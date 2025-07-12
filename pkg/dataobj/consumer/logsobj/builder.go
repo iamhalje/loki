@@ -171,6 +171,10 @@ func NewBuilder(cfg BuilderConfig) (*Builder, error) {
 	}, nil
 }
 
+func (b *Builder) GetEstimatedSize() int {
+	return b.currentSizeEstimate
+}
+
 // Append buffers a stream to be written to a data object. Append returns an
 // error if the stream labels cannot be parsed or [ErrBuilderFull] if the
 // builder is full.
@@ -213,7 +217,7 @@ func (b *Builder) Append(stream logproto.Stream) error {
 
 		// If our logs section has gotten big enough, we want to flush it to the
 		// encoder and start a new section.
-		if b.logs.EstimatedSize() > int(b.cfg.TargetSectionSize) {
+		if b.logs.UncompressedSize() > int(b.cfg.TargetSectionSize) {
 			if err := b.builder.Append(b.logs); err != nil {
 				return err
 			}
@@ -289,6 +293,7 @@ func (b *Builder) estimatedSize() int {
 	var size int
 	size += b.streams.EstimatedSize()
 	size += b.logs.EstimatedSize()
+	size += b.builder.Bytes()
 	b.metrics.sizeEstimate.Set(float64(size))
 	return size
 }

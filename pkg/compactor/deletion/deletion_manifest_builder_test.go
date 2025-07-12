@@ -23,13 +23,13 @@ const (
 	table1               = "table1"
 	table2               = "table2"
 	lblFizzBuzz          = `{fizz="buzz"}`
-	lblFooBarAndFizzBuzz = `{foo="bar", fizz="buzz"}`
+	lblFizzBuzzAndFooBar = `{fizz="buzz", foo="bar"}`
 )
 
-func buildChunks(start model.Time, count int) []retention.Chunk {
+func buildRetentionChunks(start model.Time, count int) []retention.Chunk {
 	chunks := make([]retention.Chunk, 0, count)
 	chunks = append(chunks, retention.Chunk{
-		ChunkID: []byte(fmt.Sprintf("%d", start)),
+		ChunkID: fmt.Sprintf("%d", start),
 		From:    start,
 		Through: start + 1,
 	})
@@ -37,13 +37,22 @@ func buildChunks(start model.Time, count int) []retention.Chunk {
 	for i := 1; i < count; i++ {
 		from := chunks[i-1].From + 1
 		chunks = append(chunks, retention.Chunk{
-			ChunkID: []byte(fmt.Sprintf("%d", from)),
+			ChunkID: fmt.Sprintf("%d", from),
 			From:    from,
 			Through: from + 1,
 		})
 	}
 
 	return chunks
+}
+
+func getChunkIDsFromRetentionChunks(chunks []retention.Chunk) []string {
+	chunkIDs := make([]string, 0, len(chunks))
+	for _, chunk := range chunks {
+		chunkIDs = append(chunkIDs, chunk.ChunkID)
+	}
+
+	return chunkIDs
 }
 
 type mockSeries struct {
@@ -112,13 +121,14 @@ func TestDeletionManifestBuilder(t *testing.T) {
 					series: &mockSeries{
 						userID: user1,
 						labels: mustParseLabel(lblFooBar),
-						chunks: buildChunks(10, 100),
+						chunks: buildRetentionChunks(10, 100),
 					},
 				},
 			},
 			expectedManifest: manifest{
 				Requests: []DeleteRequest{
 					{
+						UserID:    user1,
 						RequestID: req1,
 						Query:     lblFooBar,
 						StartTime: 0,
@@ -136,13 +146,16 @@ func TestDeletionManifestBuilder(t *testing.T) {
 						{
 							Requests: []DeleteRequest{
 								{
+									UserID:    user1,
 									RequestID: req1,
 									Query:     lblFooBar,
 									StartTime: 0,
 									EndTime:   100,
 								},
 							},
-							Chunks: buildChunks(10, 91),
+							Chunks: map[string][]string{
+								lblFooBar: getChunkIDsFromRetentionChunks(buildRetentionChunks(10, 91)),
+							},
 						},
 					},
 					ChunksCount: 91,
@@ -169,13 +182,14 @@ func TestDeletionManifestBuilder(t *testing.T) {
 					series: &mockSeries{
 						userID: user1,
 						labels: mustParseLabel(lblFooBar),
-						chunks: buildChunks(0, maxChunksPerSegment+1),
+						chunks: buildRetentionChunks(0, maxChunksPerSegment+1),
 					},
 				},
 			},
 			expectedManifest: manifest{
 				Requests: []DeleteRequest{
 					{
+						UserID:    user1,
 						RequestID: req1,
 						Query:     lblFooBar,
 						StartTime: 0,
@@ -193,13 +207,16 @@ func TestDeletionManifestBuilder(t *testing.T) {
 						{
 							Requests: []DeleteRequest{
 								{
+									UserID:    user1,
 									RequestID: req1,
 									Query:     lblFooBar,
 									StartTime: 0,
 									EndTime:   maxChunksPerSegment + 1,
 								},
 							},
-							Chunks: buildChunks(0, maxChunksPerSegment),
+							Chunks: map[string][]string{
+								lblFooBar: getChunkIDsFromRetentionChunks(buildRetentionChunks(0, maxChunksPerSegment)),
+							},
 						},
 					},
 					ChunksCount: maxChunksPerSegment,
@@ -211,13 +228,16 @@ func TestDeletionManifestBuilder(t *testing.T) {
 						{
 							Requests: []DeleteRequest{
 								{
+									UserID:    user1,
 									RequestID: req1,
 									Query:     lblFooBar,
 									StartTime: 0,
 									EndTime:   maxChunksPerSegment + 1,
 								},
 							},
-							Chunks: buildChunks(maxChunksPerSegment, 1),
+							Chunks: map[string][]string{
+								lblFooBar: getChunkIDsFromRetentionChunks(buildRetentionChunks(maxChunksPerSegment, 1)),
+							},
 						},
 					},
 					ChunksCount: 1,
@@ -244,7 +264,7 @@ func TestDeletionManifestBuilder(t *testing.T) {
 					series: &mockSeries{
 						userID: user1,
 						labels: mustParseLabel(lblFooBar),
-						chunks: buildChunks(0, 50),
+						chunks: buildRetentionChunks(0, 50),
 					},
 				},
 				{
@@ -252,13 +272,14 @@ func TestDeletionManifestBuilder(t *testing.T) {
 					series: &mockSeries{
 						userID: user1,
 						labels: mustParseLabel(lblFooBar),
-						chunks: buildChunks(50, 50),
+						chunks: buildRetentionChunks(50, 50),
 					},
 				},
 			},
 			expectedManifest: manifest{
 				Requests: []DeleteRequest{
 					{
+						UserID:    user1,
 						RequestID: req1,
 						Query:     lblFooBar,
 						StartTime: 0,
@@ -276,13 +297,16 @@ func TestDeletionManifestBuilder(t *testing.T) {
 						{
 							Requests: []DeleteRequest{
 								{
+									UserID:    user1,
 									RequestID: req1,
 									Query:     lblFooBar,
 									StartTime: 0,
 									EndTime:   100,
 								},
 							},
-							Chunks: buildChunks(0, 50),
+							Chunks: map[string][]string{
+								lblFooBar: getChunkIDsFromRetentionChunks(buildRetentionChunks(0, 50)),
+							},
 						},
 					},
 					ChunksCount: 50,
@@ -294,13 +318,16 @@ func TestDeletionManifestBuilder(t *testing.T) {
 						{
 							Requests: []DeleteRequest{
 								{
+									UserID:    user1,
 									RequestID: req1,
 									Query:     lblFooBar,
 									StartTime: 0,
 									EndTime:   100,
 								},
 							},
-							Chunks: buildChunks(50, 50),
+							Chunks: map[string][]string{
+								lblFooBar: getChunkIDsFromRetentionChunks(buildRetentionChunks(50, 50)),
+							},
 						},
 					},
 					ChunksCount: 50,
@@ -334,7 +361,7 @@ func TestDeletionManifestBuilder(t *testing.T) {
 					series: &mockSeries{
 						userID: user1,
 						labels: mustParseLabel(lblFooBar),
-						chunks: buildChunks(0, maxChunksPerSegment+1),
+						chunks: buildRetentionChunks(0, maxChunksPerSegment+1),
 					},
 				},
 				{
@@ -342,19 +369,21 @@ func TestDeletionManifestBuilder(t *testing.T) {
 					series: &mockSeries{
 						userID: user2,
 						labels: mustParseLabel(lblFizzBuzz),
-						chunks: buildChunks(10, maxChunksPerSegment+1),
+						chunks: buildRetentionChunks(10, maxChunksPerSegment+1),
 					},
 				},
 			},
 			expectedManifest: manifest{
 				Requests: []DeleteRequest{
 					{
+						UserID:    user1,
 						RequestID: req1,
 						Query:     lblFooBar,
 						StartTime: 0,
 						EndTime:   maxChunksPerSegment + 1,
 					},
 					{
+						UserID:    user2,
 						RequestID: req2,
 						Query:     lblFizzBuzz,
 						StartTime: 10,
@@ -372,13 +401,16 @@ func TestDeletionManifestBuilder(t *testing.T) {
 						{
 							Requests: []DeleteRequest{
 								{
+									UserID:    user1,
 									RequestID: req1,
 									Query:     lblFooBar,
 									StartTime: 0,
 									EndTime:   maxChunksPerSegment + 1,
 								},
 							},
-							Chunks: buildChunks(0, maxChunksPerSegment),
+							Chunks: map[string][]string{
+								lblFooBar: getChunkIDsFromRetentionChunks(buildRetentionChunks(0, maxChunksPerSegment)),
+							},
 						},
 					},
 					ChunksCount: maxChunksPerSegment,
@@ -390,13 +422,16 @@ func TestDeletionManifestBuilder(t *testing.T) {
 						{
 							Requests: []DeleteRequest{
 								{
+									UserID:    user1,
 									RequestID: req1,
 									Query:     lblFooBar,
 									StartTime: 0,
 									EndTime:   maxChunksPerSegment + 1,
 								},
 							},
-							Chunks: buildChunks(maxChunksPerSegment, 1),
+							Chunks: map[string][]string{
+								lblFooBar: getChunkIDsFromRetentionChunks(buildRetentionChunks(maxChunksPerSegment, 1)),
+							},
 						},
 					},
 					ChunksCount: 1,
@@ -408,13 +443,16 @@ func TestDeletionManifestBuilder(t *testing.T) {
 						{
 							Requests: []DeleteRequest{
 								{
+									UserID:    user2,
 									RequestID: req2,
 									Query:     lblFizzBuzz,
 									StartTime: 10,
 									EndTime:   10 + maxChunksPerSegment + 1,
 								},
 							},
-							Chunks: buildChunks(10, maxChunksPerSegment),
+							Chunks: map[string][]string{
+								lblFizzBuzz: getChunkIDsFromRetentionChunks(buildRetentionChunks(10, maxChunksPerSegment)),
+							},
 						},
 					},
 					ChunksCount: maxChunksPerSegment,
@@ -426,13 +464,16 @@ func TestDeletionManifestBuilder(t *testing.T) {
 						{
 							Requests: []DeleteRequest{
 								{
+									UserID:    user2,
 									RequestID: req2,
 									Query:     lblFizzBuzz,
 									StartTime: 10,
 									EndTime:   10 + maxChunksPerSegment + 1,
 								},
 							},
-							Chunks: buildChunks(10+maxChunksPerSegment, 1),
+							Chunks: map[string][]string{
+								lblFizzBuzz: getChunkIDsFromRetentionChunks(buildRetentionChunks(10+maxChunksPerSegment, 1)),
+							},
 						},
 					},
 					ChunksCount: 1,
@@ -465,20 +506,22 @@ func TestDeletionManifestBuilder(t *testing.T) {
 					tableName: table1,
 					series: &mockSeries{
 						userID: user1,
-						labels: mustParseLabel(lblFooBarAndFizzBuzz),
-						chunks: buildChunks(25, 50),
+						labels: mustParseLabel(lblFizzBuzzAndFooBar),
+						chunks: buildRetentionChunks(25, 50),
 					},
 				},
 			},
 			expectedManifest: manifest{
 				Requests: []DeleteRequest{
 					{
+						UserID:    user1,
 						RequestID: req1,
 						Query:     lblFooBar,
 						StartTime: 0,
 						EndTime:   100,
 					},
 					{
+						UserID:    user1,
 						RequestID: req2,
 						Query:     lblFizzBuzz,
 						StartTime: 51,
@@ -496,30 +539,37 @@ func TestDeletionManifestBuilder(t *testing.T) {
 						{
 							Requests: []DeleteRequest{
 								{
+									UserID:    user1,
 									RequestID: req1,
 									Query:     lblFooBar,
 									StartTime: 0,
 									EndTime:   100,
 								},
 							},
-							Chunks: buildChunks(25, 25),
+							Chunks: map[string][]string{
+								lblFizzBuzzAndFooBar: getChunkIDsFromRetentionChunks(buildRetentionChunks(25, 25)),
+							},
 						},
 						{
 							Requests: []DeleteRequest{
 								{
+									UserID:    user1,
 									RequestID: req1,
 									Query:     lblFooBar,
 									StartTime: 0,
 									EndTime:   100,
 								},
 								{
+									UserID:    user1,
 									RequestID: req2,
 									Query:     lblFizzBuzz,
 									StartTime: 51,
 									EndTime:   100,
 								},
 							},
-							Chunks: buildChunks(50, 25),
+							Chunks: map[string][]string{
+								lblFizzBuzzAndFooBar: getChunkIDsFromRetentionChunks(buildRetentionChunks(50, 25)),
+							},
 						},
 					},
 
@@ -545,7 +595,7 @@ func TestDeletionManifestBuilder(t *testing.T) {
 			}
 
 			// Create builder
-			builder, err := newDeletionManifestBuilder(objectClient, *batch)
+			builder, err := newDeletionManifestBuilder(objectClient, batch)
 			require.NoError(t, err)
 
 			// Process series
@@ -561,7 +611,7 @@ func TestDeletionManifestBuilder(t *testing.T) {
 			require.Equal(t, tc.expectedManifest.SegmentsCount, builder.segmentsCount)
 			require.Equal(t, tc.expectedManifest.ChunksCount, builder.overallChunksCount)
 
-			reader, _, err := builder.deleteStoreClient.GetObject(context.Background(), builder.buildObjectKey(manifestFileName))
+			reader, _, err := builder.deletionStoreClient.GetObject(context.Background(), builder.buildObjectKey(manifestFileName))
 			require.NoError(t, err)
 
 			manifestJSON, err := io.ReadAll(reader)
@@ -577,7 +627,7 @@ func TestDeletionManifestBuilder(t *testing.T) {
 			require.Equal(t, tc.expectedManifest, manifest)
 
 			for i := 0; i < tc.expectedManifest.SegmentsCount; i++ {
-				reader, _, err := builder.deleteStoreClient.GetObject(context.Background(), builder.buildObjectKey(fmt.Sprintf("%d.json", i+1)))
+				reader, _, err := builder.deletionStoreClient.GetObject(context.Background(), builder.buildObjectKey(fmt.Sprintf("%d.json", i)))
 				require.NoError(t, err)
 
 				segmentJSON, err := io.ReadAll(reader)
@@ -622,13 +672,13 @@ func TestDeletionManifestBuilder_Errors(t *testing.T) {
 	})
 
 	// Create builder
-	builder, err := newDeletionManifestBuilder(objectClient, *batch)
+	builder, err := newDeletionManifestBuilder(objectClient, batch)
 	require.NoError(t, err)
 
 	err = builder.AddSeries(ctx, table1, &mockSeries{
 		userID: user2,
 		labels: mustParseLabel(lblFooBar),
-		chunks: buildChunks(0, 25),
+		chunks: buildRetentionChunks(0, 25),
 	})
 	require.EqualError(t, err, fmt.Sprintf("no requests loaded for user: %s", user2))
 
